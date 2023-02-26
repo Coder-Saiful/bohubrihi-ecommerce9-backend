@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { createCategory, getCategories, udpateCategory, deleteCategory } = require('../controllers/categoryController');
+const { createCategory, getCategories, udpateCategory, deleteCategory, getSingleCategory } = require('../controllers/categoryController');
 const authorize = require('../middlewares/authorize');
 const admin = require('../middlewares/admin');
 
@@ -9,6 +9,7 @@ router.route('/')
 
 router.route('/:id')
     .put([authorize, admin], udpateCategory)
-    .delete([authorize, admin], deleteCategory);
+    .delete([authorize, admin], deleteCategory)
+    .get(getSingleCategory);
 
 module.exports = router;

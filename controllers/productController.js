@@ -1,4 +1,5 @@
 const { Product, validate } = require('../models/product');
+const { Category } = require('../models/category');
 const _ = require('lodash');
 const { IncomingForm } = require('formidable');
 const fs = require('fs');
@@ -40,7 +41,7 @@ module.exports.createProduct = async (req, res) => {
                 });
             });
         } else {
-            return res.status(400).send({ message: "No image provided!" });
+            return res.status(400).send({ noImage: "No image provided!" });
         }
     });
 
@@ -51,8 +52,8 @@ module.exports.getProducts = async (req, res) => {
     try {
         if (await Product.count() > 0) {
             const order = req.query.order === "desc" ? -1 : 1;
-            const sortBy = req.query.sortBy ? req.query.sortBy : "_id";
-            const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+            const sortBy = req.query.sortBy ? req.query.sortBy : "createdAt";
+            const limit = req.query.limit ? parseInt(req.query.limit) : 0;
             const products = await Product.find()
                 .select({ photo: 0 })
                 .sort({[sortBy]: order})
@@ -74,9 +75,10 @@ module.exports.productDetails = async (req, res) => {
         const product = await Product.findById(productId)
             .select({ photo: 0 })
             .populate('category', 'name');
+        if (!product) return res.status(400).send({ message: "Failed to fetch product details!" });
         return res.status(200).send(product);
     } catch (error) {
-        return res.status(400).send({ message: "Failed to fetch product detail!" });
+        return res.status(400).send({ message: "Failed to fetch product details!" });
     }
 }
 
@@ -87,6 +89,7 @@ module.exports.getProductPhoto = async (req, res) => {
         const product = await Product.findById(productId)
             .select({ photo: 1, _id: 0 });
         res.set('Content-Type', product.photo.contentType);
+        if (!product) return res.status(400).send({ message: "Failed to fetch product photo!" });
         return res.status(200).send(product.photo.data);
     } catch (error) {
         return res.status(400).send({ message: "Failed to fetch product photo!" });
@@ -98,6 +101,7 @@ module.exports.updateProduct = async (req, res) => {
     try {
         const productId = req.params.id;
         const product = await Product.findById(productId);
+        if (!product) return res.status(400).send({ message: "Product updated failed!" });
         const form = new IncomingForm();
         form.keepExtensions = true;
         form.parse(req, (err, fields, files) => {
@@ -132,7 +136,8 @@ module.exports.updateProduct = async (req, res) => {
 module.exports.deleteProduct = async (req, res) => {
     try {
         const productId = req.params.id;
-        await Product.findByIdAndDelete(productId);
+        const product = await Product.findByIdAndDelete(productId);
+        if (!product) return res.status(400).send({ message: "Product deleted failed!" });
         return res.status(200).send({ message: "Product deleted successfully!" });
     } catch (error) {
         return res.status(400).send({ message: "Product deleted failed!" });
@@ -142,35 +147,61 @@ module.exports.deleteProduct = async (req, res) => {
 // filer by any fields
 
 module.exports.filterProducts = async (req, res) => {
-    const order = req.body.order === "desc" ? -1 : 1;
-    const sortBy = req.body.sortBy ? req.query.sortBy : "_id";
-    const limit = req.body.limit ? parseInt(req.query.limit) : 10;
-    const skip = parseInt(req.body.skip);
-    const filters = req.body.filters;
-    const args = {};
+    try {
+        const order = req.body.order === "desc" ? -1 : 1;
+        const sortBy = req.body.sortBy ? req.query.sortBy : "createdAt";
+        const limit = req.body.limit ? parseInt(req.query.limit) : 0;
+        const skip = parseInt(req.body.skip);
+        const filters = req.body.filters;
+        const args = {};
 
-    for (const key in filters) {
-        if (filters[key].length > 0) {
-            if (key === "price") {
-                args.price = {
-                    $gte: filters.price[0],
-                    $lte: filters.price[1]
+        for (const key in filters) {
+            if (filters[key].length > 0) {
+                if (key === "price") {
+                    args.price = {
+                        $gte: filters.price[0],
+                        $lte: filters.price[1]
+                    }
                 }
-            }
 
-            if (key === "category") {
-                args.category = {
-                    $in: filters.category
+                if (key === "category") {
+                    args.category = {
+                        $in: filters.category
+                    }
                 }
             }
         }
-    }
 
-    const products = await Product.find(args)
-        .select({photo: 0})
-        .populate('category', 'name')
-        .sort({[sortBy]: order})
-        .limit(limit)
-        .skip(skip);
-    return res.status(200).send(products);
+        const products = await Product.find(args)
+            .select({photo: 0})
+            .populate('category', 'name')
+            .sort({[sortBy]: order})
+            .limit(limit)
+            .skip(skip);
+        if (products.length > 0) {
+            return res.status(200).send(products);
+        } else {
+            return res.status(200).send({message: "No product available!"});
+        }
+    } catch (error) {
+        return res.status(400).send({message: "Failed to fetch product!"});
+    }
+}
+
+module.exports.productFilterByCategory = async (req, res) => {
+    try {
+        const categoryName = req.body.categoryName;
+        const category = await Category.findOne({name: categoryName});
+        const products = await Product.find({category: category._id})
+            .select({photo: 0})
+            .populate('category', 'name')
+            .sort({createdAt: -1});
+        if (products.length > 0) {
+            return res.status(200).send(products);
+        } else {
+            return res.status(200).send({message: "No product available!"});
+        }
+    } catch (error) {
+        return res.status(400).send({message: "Failed to fetch products!"});
+    }
 }
