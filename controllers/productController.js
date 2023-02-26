@@ -54,12 +54,27 @@ module.exports.getProducts = async (req, res) => {
             const order = req.query.order === "desc" ? -1 : 1;
             const sortBy = req.query.sortBy ? req.query.sortBy : "createdAt";
             const limit = req.query.limit ? parseInt(req.query.limit) : 0;
+            const page = req.query.page ? parseInt(req.query.page) : 1;
+            const skip = (page - 1) * limit;
+            const totalData = await Product.count();
+            let totalPage = Math.ceil(totalData / limit);
+            if (limit === 0) {
+                totalPage = 1;
+            }
+      
             const products = await Product.find()
                 .select({ photo: 0 })
                 .sort({[sortBy]: order})
                 .limit(limit)
-                .populate('category', 'name');
-            return res.status(200).send(products);
+                .populate('category', 'name')
+                .skip(skip);
+                
+            return res.status(200).send({
+                totalData: totalData,
+                totalPage: totalPage,
+                skip: skip,
+                products: products
+            });
         } else {
             return res.status(200).send({message: "No product available!"});
         }
