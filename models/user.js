@@ -49,3 +49,30 @@ module.exports.validateUser = user => {
     });
     return schema.validate(user, {abortEarly: false});
 }
+
+module.exports.validatePassword = data => {
+    const schema = Joi.object({
+        currentPass: Joi.string().required().min(5).max(255).messages({
+            'string.base': `Current password should be a type of 'text'.`,
+            'string.empty': `Current password cannot be an empty field.`,
+            'string.min': `Current password should have a minimum length of 5.`,
+            'string.max': `Current password should have a maximum length of 255.`,
+            'any.required': `Current password is a required field.`
+        }),
+        newPass: Joi.string().required().min(5).max(255).messages({
+            'string.base': `New password should be a type of 'text'`,
+            'string.empty': `New password cannot be an empty field.`,
+            'string.min': `New password should have a minimum length of 5.`,
+            'string.max': `New password should have a maximum length of 255.`,
+            'any.required': `New password is a required field.`
+        }),
+        confirmPass: Joi.string().required().min(5).max(255).messages({
+            'string.base': `Confirm password should be a type of 'text'.`,
+            'string.empty': `Confirm password cannot be an empty field.`,
+            'string.min': `Confirm password should have a minimum length of 5.`,
+            'string.max': `Confirm password should have a maximum length of 255.`,
+            'any.required': `Confirm password is a required field.`
+        })
+    });
+    return schema.validate(data, {abortEarly: false});
+}
