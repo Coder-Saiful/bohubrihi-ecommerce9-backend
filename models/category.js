@@ -6,7 +6,8 @@ module.exports.Category = model('Category', Schema({
         type: String,
         required:true,
         unique: true
-    }
+    },
+    slug: String
 }, { timestamps: true }));
 
 module.exports.validate = category => {
