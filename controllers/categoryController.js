@@ -9,14 +9,14 @@ module.exports.createCategory = async (req, res) => {
         let category = await Category.findOne({ name: req.body.name });
         if (category) return res.status(400).send({ categoryName: "Category already exists!" });
 
-        category = new Category(_.pick(req.body, ["name"]));
+        category = new Category({name: req.body.name, slug: req.body.name.toLowerCase()});
 
         const result = await category.save();
 
         return res.status(201).send({
             message: "Category created successfully!",
-            data: _.pick(result, ["_id", "name"])
-        });
+            data: result
+        }); 
     } catch (error) {
         return res.status(400).send({message: "Category created failed!"});
     }
