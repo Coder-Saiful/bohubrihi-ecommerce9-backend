@@ -206,7 +206,7 @@ module.exports.filterProducts = async (req, res) => {
 module.exports.productFilterByCategory = async (req, res) => {
     try {
         const categoryName = req.body.categoryName;
-        const category = await Category.findOne({name: categoryName});
+        const category = await Category.findOne({slug: categoryName});
         const products = await Product.find({category: category._id})
             .select({photo: 0})
             .populate('category', 'name')
